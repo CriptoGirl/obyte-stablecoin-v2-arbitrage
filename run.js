@@ -52,6 +52,10 @@ async function estimate_asset (curveAA, stableAA, GBYTEs) {
 	// ** get upcomming state balances and state vars for all aas ** //
 	const vars = aa_state.getUpcomingAAStateVars(curveAA);
 	const params = await dag.readAAParams(curveAA);
+
+	const actualParams = {};
+	Object.keys(params).forEach((name) => actualParams[name] = vars[name] || params[name])
+
 	//
 	//const vars_stable_aa = aa_state.getUpcomingAAStateVars(stableAA);
 	//const tokens_stable = upcomingStateVars_stable_aa.supply
@@ -61,7 +65,7 @@ async function estimate_asset (curveAA, stableAA, GBYTEs) {
 	const oraclePrice = await get_oracle_price(oracles);
 	//
 	const commonData = {
-		params: params,
+		params: actualParams,
 		vars: vars,
 		oracle_price: oraclePrice,
 		timestamp: Math.floor(Date.now() / 1000),
@@ -76,8 +80,10 @@ async function estimate_asset (curveAA, stableAA, GBYTEs) {
 	});
 	console.error('excchange result from bonded.js : ', exchange)
 	const expect_t2 = Math.abs(Math.trunc(exchange.expectNewT2));
-	console.error('expect T2: ', 
-		Number((expect_t2/10**params.decimals2)*exchange.growth_factor).toFixed(params.decimals2));
+	console.error('expect T2: ',
+		Number((expect_t2 / 10 ** params.decimals2)).toFixed(params.decimals2));
+	console.error('expect STABLE: ', 
+		Number((expect_t2 / 10 ** params.decimals2) * exchange.growth_factor).toFixed(params.decimals2));
 	return;
 };
 
