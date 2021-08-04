@@ -9,7 +9,7 @@ const dag = require('aabot/dag.js');
 const light_data_feeds = conf.bLight ? require('aabot/light_data_feeds.js') : null;
 //
 const bonded = require('./bonded.js');
-let oswap_pairs = {}, curve_aas = {};
+let oswap_pairs = {}, oswap_aas = [], curve_aas = [];
 let oswap_aa, oswap_params;
 let asset1_curve_aa, asset1_vars, asset1_params = {}, asset1_decimals, asset1_commonData;
 let asset2_curve_aa, asset2_vars, asset2_params = {}, asset2_decimals, asset2_commonData, asset2_stable_supply;
@@ -182,7 +182,7 @@ async function getVarsParamsAndBalances () {
 	return;
 }
 
-async function XXXfollowAssetAAs( asset, curve_aa) {
+async function followAssetAAs( asset, curve_aa) {
 	await aa_state.followAA( curve_aa );
 	//console.error('Following ', asset, ' curve aa: ', curve_aa)
 	let fund_aa = await dag.readAAStateVar(curve_aa, 'fund_aa')
@@ -206,53 +206,16 @@ async function XXXfollowAssetAAs( asset, curve_aa) {
 	return;
 }
 
-async function XXXfollowAAs() { 
+async function followAAs() { 
 	console.error('..... following AAs')
 	await aa_state.followAA( conf.oswapAA );
 	//console.error('following oswap aa: ', conf.oswapAA)
-	await XXXfollowAssetAAs( 'asset 1', asset1_curve_aa )
-	await XXXfollowAssetAAs( 'asset 2', asset2_curve_aa )
+	await followAssetAAs( 'asset 1', asset1_curve_aa )
+	await followAssetAAs( 'asset 2', asset2_curve_aa )
 	return;
 }
 
-// ** get Ostable AAs ** //
-async function getOstableAAs() {
-	console.error('test')
-}
-
-// ** folow Asset AAs ** //
-async function followAssetAAs() { 
-	console.error('..... following Asset AAs')
-	Object.keys(curve_aas).forEach( async (curve_aa) => { 
-		if ( !curve_aas[curve_aa].followed ) {
-			await aa_state.followAA(curve_aa) ;
-			let vars = await dag.readAAStateVars(curve_aa);
-			if (vars.fund_aa) await aa_state.followAA(vars.fund_aa);
-			if (vars.decision_engine_aa) await aa_state.followAA(vars.decision_engine_aa);
-			if (vars.governance_aa) await aa_state.followAA(vars.governance_aa);
-			console.error('vars: ', vars)
-			curve_aas[curve_aa].followed = true; 
-			console.error('..... ..... following curve aa: ', curve_aa )
-		}
-	})
-	return;
-}
-
-// ** follow Oswap AAs ** //
-async function followOswapAAs() { 
-	console.error('..... following Oswap AAs')
-	Object.keys(oswap_pairs).forEach( async (oswap_aa) => { 
-		if ( !oswap_pairs[oswap_aa].followed ) {
-			await aa_state.followAA(oswap_aa) ;
-			oswap_pairs[oswap_aa].followed = true; 
-			console.error('..... ..... following oswap aa: ', oswap_aa )
-		}
-	})
-	return;
-}
-
-async function getOswapAndCurveAAs() {
-	console.error('..... getting oswap aas, its assets and their curve aas')
+async function getOswapAAs() {
 	let oswap_factory
 	if (!conf.oswap_factory) throw Error("Please specify oswap factory");
 	else oswap_factory = conf.oswap_factory;
@@ -262,7 +225,7 @@ async function getOswapAndCurveAAs() {
 	let factory_vars = Object.keys(factory_vars_obj);
 	for (let factory_var of factory_vars) { 
 		var var_arr = factory_var.split('.');
-		if ( var_arr[0] === 'pools' && !oswap_pairs[var_arr[1]] ) {
+		if ( var_arr[0] === 'pools' && !oswap_aas[var_arr[1]] ) {
 			let oswap_aa = var_arr[1]
 
 			await aa_state.followAA( oswap_aa );
@@ -284,27 +247,26 @@ async function getOswapAndCurveAAs() {
 				}
 			}
 			// crete oswap object & add it to the oswap_aas object
-			if (oswap_aa && asset0.curve_aa && asset1.curve_aa && oswap_params.swap_fee) {
+			if (oswap_aa && asset0 && asset1 && oswap_params.swap_fee) {
 				// crete oswap object & add it to the oswap_pairs object
 				oswap_pairs[oswap_aa] = {
 					oswap_aa: oswap_aa,
-					followed: false,
 					asset0: asset0,
 					asset1: asset1,
 					swap_fee: oswap_params.swap_fee
 				}
+				// add oswap aa to oswap_aas array 
+				oswap_aas.push(oswap_aa);
 				// add curve aas to curve_aas array
-				curve_aas[asset0.curve_aa] = { curve_aa: asset0.curve_aa, followed: false};
-				curve_aas[asset1.curve_aa] = { curve_aa: asset1.curve_aa, followed: false}
-				//if ( !curve_aas.includes(asset0.curve_aa) ) curve_aas.push(asset0.curve_aa);
-				//if ( !curve_aas.includes(asset1.curve_aa) ) curve_aas.push(asset1.curve_aa);
+				if ( !curve_aas.includes(asset0.curve_aa) ) curve_aas.push(asset0.curve_aa);
+				if ( !curve_aas.includes(asset1.curve_aa) ) curve_aas.push(asset1.curve_aa);
 			}
 		}
 	}
 	return;
 }
 
-function XXXcheckAndAssignConfigData() {
+function checkAndAssignConfigData() {
 	console.error('..... checking config')
 	if (!conf.oswapAA) throw Error("Please specify oswap AA for token pair");
 	else oswap_aa = conf.oswapAA;
@@ -327,18 +289,16 @@ eventBus.on('headless_wallet_ready', async () => {
 
 	network.start();
 
-	//await XXXcheckAndAssignConfigData();
-	await getOswapAndCurveAAs();
+	//await checkAndAssignConfigData();
+	await getOswapAAs();
 	//console.error('sample oswap_pairs: ', oswap_aas.IX3BHPN433VVJCBZKT4UBSDGFSRW4TD5)
 	console.error( 'oswap pairs: ', oswap_pairs )
-	console.error( 'curve_aas: ', curve_aas )
-	await followOswapAAs();
-	await followAssetAAs();
-	await getOstableAAs();
+	console.error( 'oswap_aas: ', oswap_aas )
+	console.error( 'cuver_aas: ', curve_aas )
 	return;
 	
 	// ** following oswap, asset 1 & asset 2 AAs ** //
-	await XXXfollowAAs();
+	await followAAs();
 	
 	// ** get latest vars, params and balances for oswap aa, asset 1 & asset 2 ** //
 	await getVarsParamsAndBalances();

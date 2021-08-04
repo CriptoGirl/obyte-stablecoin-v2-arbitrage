@@ -70,38 +70,28 @@ const $get_exchange_result = ({
         reserve_asset,
     } = params;
 
-    console.error('----> oracle_price: ', oracle_price);  // checked ok
     const fast_capacity_share = 1 - slow_capacity_share;
     const initial_p2 = vars.p2;
-    console.error('----> initial_p2: ', inverseAndFormat(initial_p2, 7));  // checked ok
     const target_p2 = 
         $get_target_p2(oracle_price, leverage, interest_rate, timestamp, rate_update_ts, growth_factor);
-    console.error('----> target_p2: ', inverseAndFormat(target_p2, 7));  // checked ok
     const new_growth_factor =
         $get_growth_factor(interest_rate, timestamp, rate_update_ts, growth_factor);
-    console.error('----> new_growth_factor: ', new_growth_factor);
     const distance =
         initial_p2 !== undefined && target_p2 ? $get_distance(initial_p2, target_p2, isV2) : 0;
-    console.error('----> distance: ', distance);
-    
+
     if (tokens_stable) tokens2 += tokens_stable / new_growth_factor;
-    console.error('----> tokens2: ', tokens2);
 
     const new_supply1 = supply1 + tokens1;
     const new_supply2 = supply2 + tokens2;
 
     const s1 = new_supply1 / 10 ** decimals1;
     const s2 = new_supply2 / 10 ** decimals2;
-    console.error('----> s2: ', s2);
 
     const old_s1 = supply1 / 10 ** decimals1;
     const old_s2 = supply2 / 10 ** decimals2;
-    console.error('----> old_s2: ', old_s2);   // checked ok
 
     const r = $get_reserve(s1, s2, m, n, dilution_factor, isV2);
-    let p2 = $get_p2(s1, s2, dilution_factor, m, n, isV2);   // should not be the same as initial p2
-    console.error('----> p2: ', inverseAndFormat(p2, 7));   
-
+    let p2 = $get_p2(s1, s2, dilution_factor, m, n, isV2);   
     const new_reserve = Math.ceil(r * 10 ** reserve_asset_decimals);
     const reserve_delta = new_reserve - reserve;
     const new_distance = target_p2 ? $get_distance(p2, target_p2, isV2) : 0;
@@ -109,16 +99,12 @@ const $get_exchange_result = ({
 
     let fee, reward, reserve_needed, regular_fee, new_fast_capacity, distance_share, reverse_reward;
     if (distance === 0 && new_distance === 0) {
-        console.error('----> calculating fee: case 1')
         fee = 0;
         reward = 0;
         reserve_needed = reserve_delta;
     } else if (new_distance >= distance) {
-        console.error('----> calculating fee: case 2: going away from the target price')
         // going away from the target price - pay a fee
         reward = 0;
-        console.error('----> new_distance: ', new_distance)
-        console.error('----> ... distance: ', distance)
         regular_fee = $get_fee(avg_reserve, distance, new_distance, fee_multiplier);
         new_fast_capacity = fast_capacity + Decimal(regular_fee).mul(fast_capacity_share).toNumber();
         distance_share = 1 - Decimal(distance).div(new_distance).toNumber();
@@ -136,9 +122,7 @@ const $get_exchange_result = ({
         fee = 0;
         reward = Decimal.floor((1 - Decimal(new_distance).div(distance).toNumber()) * fast_capacity);
         reserve_needed = reserve_delta - reward; // negative for payouts
-        console.error('----> calculating fee: case 3: going towards the target price - get a reward')
     }
-    console.error('----> fee = ', fee, ' reward = ', reward, ' reserve_needed = ', reserve_needed)
   
     const turnover = $get_turnover(-reserve_delta, tokens1, tokens2, p2);
     let fee_percent = fee ? Decimal(fee).div(turnover).mul(100).toNumber() : 0;
@@ -147,10 +131,6 @@ const $get_exchange_result = ({
     const full_network_fee = network_fee;
     const reserve_asset_amount = reserve_asset === "base" ? 1e4 - full_network_fee : 0;
     const payout = reserve_asset_amount - reserve_needed;
-    console.error('----> fee_percent = ', fee_percent)
-    console.error('----> reward_percent = ', reward_percent)
-    console.error('----> reserve_asset_amount = ', reserve_asset_amount)
-    console.error('----> payout = ', payout)
 
     const s1init = initial_p2
         ? (initial_p2 / (dilution_factor * n *
@@ -212,16 +192,9 @@ const $get_exchange_result = ({
 
     let expectNewT2;
 
-    if (addReserve && addReserve > 0) {  
-
-    console.error('------> using old_s1: ', old_s1)  // just reading from vars
-    console.error('------> using reserve: ', reserve/1000000000, 'GBYTEs')  // checked ok
-    console.error('------> using addReserve: ', addReserve/1000000000, 'GBYTEs') // checked ok
+    if (addReserve && addReserve > 0) { 
     const startS2 = ((reserve + addReserve) / (old_s1 ** m * 10 ** reserve_asset_decimals)) ** (1 / n)
-    console.error('------> startS2: ', startS2) // should be ok 
-    console.error('----> using new_supply2: ', new_supply2/1000, ' same as supply2')
     const startT2 = startS2 * 10 ** decimals2 - new_supply2; 
-    console.error('----> startT2: ', startT2/10000)
 
     let a = 0;
     let b = startT2 * 2;

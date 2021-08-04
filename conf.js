@@ -19,9 +19,14 @@ exports.KEYS_FILENAME = 'keys.json';
 exports.bServeAsHub = false;  /// ???
 exports.bWantNewPeers = true; /// ???
 //
+exports.oswap_factory = 'B22543LKSS35Z55ROU4GDN26RT6MDKWU';
+exports.ostable_factory = 'YXPLX6Q3HBBSH2K5HLYM45W7P7HFSEIN';
+//
 exports.oswapAA = 'IX3BHPN433VVJCBZKT4UBSDGFSRW4TD5';
 exports.asset1_curveAA = 'VLKI3XMMX5YULOBA6ZXBXDPI6TXF6V3D';
+exports.asset1_stableAA = 'KGMHPPH4H4K2HSRKFSBZLMDANQYC6DFN';
 exports.asset2_curveAA = 'MMN3JBJWTT7ZZL7I7K66GSZQ3MHTPW47';
+exports.asset2_stableAA = 'DJHSXSWWPLMRNZZWBFDLRR47NKW7ZU73';
 ///
 ///exports.explicitStart = true;
 ///exports.min_reserve_delta = 1e8;
